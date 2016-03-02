@@ -1,20 +1,11 @@
 {
-  "deviceplugin_name": {
-    "en": "NodeJS Host Device Plug-in",
-    "ja": "NodeJS Host デバイスプラグイン"
-  },
-  "deviceplugin_provider": [
-    {
-      "profile": "servicediscovery"
+    "deviceplugin_name": {
+        "en": "NodeJS Host Device Plug-in",
+        "ja": "NodeJS Host デバイスプラグイン"
     },
-    {
-      "profile": "serviceinformation"
-    },
-    {
-      "profile": "notification"
-    },
-    {
-      "profile": "mediastream_recording"
-    }
-  ]
+    "deviceplugin_provider": [
+        {
+            "profile": "servicediscovery"
+        }
+    ]
 }

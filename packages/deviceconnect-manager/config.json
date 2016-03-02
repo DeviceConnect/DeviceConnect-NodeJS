@@ -3,19 +3,22 @@
   "lang": "en",
 
   "httpServer": {
-    "port": 4035
+      "port": 4035
   },
 
   "httpsServer": {
-    "port": 4036
+      "port": 4036
   },
 
   "supports": [{
-    "name": "availability",
-    "module": "./profiles/availability"
+      "name": "availability",
+      "module": "./profiles/availability"
   }, {
-    "name": "system",
-    "module": "./profiles/system"
+      "name": "servicediscovery",
+      "module": "./profiles/servicediscovery"
+  }, {
+      "name": "system",
+      "module": "./profiles/system"
   }]
 
 }
