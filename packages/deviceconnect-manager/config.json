@@ -1,0 +1,21 @@
+{
+
+  "lang": "en",
+
+  "httpServer": {
+    "port": 4035
+  },
+
+  "httpsServer": {
+    "port": 4036
+  },
+
+  "supports": [{
+    "name": "availability",
+    "module": "./profiles/availability"
+  }, {
+    "name": "system",
+    "module": "./profiles/system"
+  }]
+
+}
