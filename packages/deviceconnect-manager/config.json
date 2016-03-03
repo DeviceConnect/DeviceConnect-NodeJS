@@ -1,26 +1,27 @@
 {
 
-  "lang": "en",
+    "lang": "en",
 
-  "httpServer": {
-      "port": 4035
-  },
+    "http": {
+        "port": 4035
+    },
 
-  "httpsServer": {
-      "port": 4036,
-      "certificate": "<YOUR CERTIFICATE FILE PATH>",
-      "privateKey": "<YOUR PRIVATE KEY FILE PATH>"
-  },
+    "https": {
+        "enabled": false,
+        "port": 4036,
+        "certificate": "/path/to/certificate",
+        "privateKey": "/path/to/private_key"
+    },
 
-  "supports": [{
-      "name": "availability",
-      "module": "./profiles/availability"
-  }, {
-      "name": "servicediscovery",
-      "module": "./profiles/servicediscovery"
-  }, {
-      "name": "system",
-      "module": "./profiles/system"
-  }]
+    "supports": [{
+        "name": "availability",
+        "module": "./profiles/availability"
+    }, {
+        "name": "servicediscovery",
+        "module": "./profiles/servicediscovery"
+    }, {
+        "name": "system",
+        "module": "./profiles/system"
+    }]
 
 }
