@@ -7,7 +7,9 @@
   },
 
   "httpsServer": {
-      "port": 4036
+      "port": 4036,
+      "certificate": "<YOUR CERTIFICATE FILE PATH>",
+      "privateKey": "<YOUR PRIVATE KEY FILE PATH>"
   },
 
   "supports": [{
