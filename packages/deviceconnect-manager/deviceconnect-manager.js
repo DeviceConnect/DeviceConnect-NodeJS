@@ -16,7 +16,11 @@ app.all(['/:api/:profile', '/:api/:profile/:attribute', '/:api/:profile/:interfa
     var dConnectRequest = new Request(req),
         dConnectResponse = new Response(),
         parsedId, plugin, handler;
-
+    
+    if (req.params.api !== 'gotapi') {
+        res.status(404).send('404 Not Found');
+        return;
+    }
     try {
         handler = findOwnHandler(dConnectRequest);
         if (handler !== null) {
@@ -56,7 +60,6 @@ function findOwnHandler(request) {
         for (k = 0; k < handlers.length; k++) {
             handler = handlers[k];
             if (handler.method === request.method
-                && handler.api === request.api
                 && handler.profile === request.profile
                 && handler.interface === request.interface
                 && handler.attribute === request.attribute) {

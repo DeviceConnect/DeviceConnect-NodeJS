@@ -5,7 +5,6 @@ module.exports = {
     provides: [
         {
             method: 'GET',
-            api: 'gotapi',
             profile: 'system',
             onRequest: function(request, response) {
                 var supports = [];

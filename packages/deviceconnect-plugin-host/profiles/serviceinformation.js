@@ -1,22 +1,22 @@
-var plugin = require('../plugin');
-
 module.exports = {
 
     name: 'serviceinformation',
 
-    provides: [
+    apis: [
         {
             method: 'GET',
-            api: 'gotapi',
             profile: 'serviceinformation',
-            onRequest: function(request, response) {
-                if (request.serviceId !== 'Host') {
-                    response.error(6);
-                    return;
-                }
-                response.put('supports', plugin.scopes());
-                response.ok();
-            }
+            onRequest: onGetSystemInformation
         }
     ]
 };
+
+function onGetSystemInformation(request, response) {
+    var plugin = require('../plugin');
+    if (request.serviceId !== 'Host') {
+        response.error(6);
+        return;
+    }
+    response.put('supports', plugin.scopes());
+    response.ok();
+}
