@@ -25,8 +25,6 @@ Response.prototype.error = function(code, message) {
     this.put('errorMessage', message);
 };
 Response.prototype.toJson = function() {
-    //this.put('product', packageJson.name);
-    //this.put('version', packageJson.version);
     return this.json;
 };
 

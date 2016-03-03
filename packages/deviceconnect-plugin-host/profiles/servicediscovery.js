@@ -1,13 +1,4 @@
-var fs = require('fs');
-
-var pluginJson = JSON.parse(fs.readFileSync(__dirname + '/../deviceplugin.json', 'utf8'));
-var scopes = (function() {
-    var array = [];
-    for (var key in pluginJson.deviceplugin_provider) {
-        array.push(String(pluginJson.deviceplugin_provider[key].profile));
-    }
-    return array;
-})(pluginJson);
+var plugin = require('../plugin');
 
 module.exports = {
 
@@ -16,15 +7,18 @@ module.exports = {
     provides: [
         {
             method: 'GET',
+            api: 'gotapi',
             profile: 'servicediscovery',
             onRequest: function(request, response) {
+                console.log('plugin: ', plugin);
+
                 response.put('services', [{
                     id: 'Host',
                     name: 'NodeJS Host',
                     type: 'WiFi',
                     online: true,
                     config: '',
-                    scopes: scopes
+                    scopes: plugin.scopes()
                 }]);
                 response.ok();
             }

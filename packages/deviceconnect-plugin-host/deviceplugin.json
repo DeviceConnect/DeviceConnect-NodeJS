@@ -6,6 +6,9 @@
     "deviceplugin_provider": [
         {
             "profile": "servicediscovery"
+        },
+        {
+            "profile": "serviceinformation"
         }
     ]
 }

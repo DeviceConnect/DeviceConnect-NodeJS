@@ -13,52 +13,65 @@ config.supports.forEach(function(profile) {
 });
 
 app.all(['/:api/:profile', '/:api/:profile/:attribute', '/:api/:profile/:interface/:attribute'], function(req, res) {
-    var result = false,
-        dConnectRequest = new Request(req),
+    var dConnectRequest = new Request(req),
         dConnectResponse = new Response(),
-        parsedId, plugin;
+        parsedId, plugin, handler;
 
-    ownProfiles.forEach(function(profile) {
-        profile.provides.forEach(function(handler) {
-            if (!result && handler.method === dConnectRequest.method
-                && handler.api === dConnectRequest.api
-                && handler.profile === dConnectRequest.profile
-                && handler.interface === dConnectRequest.interface
-                && handler.attribute === dConnectRequest.attribute) {
-                handler.onRequest(dConnectRequest, dConnectResponse);
-                result = true;
-            }
-        });
-    });
-    if (result) {
-        res.json(dConnectResponse.toJson());
-        return;
-    }
-    parsedId = parseServiceId(req.query.serviceId);
-    if (parsedId !== undefined) {
-        plugin = pluginMgr.plugin(parsedId.serviceId);
-        if (plugin !== undefined) {
-            plugin.entryPoint.onRequest(dConnectRequest, dConnectResponse);
-        } else {
-            // TODO error handling
+    try {
+        handler = findOwnHandler(dConnectRequest);
+        if (handler !== null) {
+            handler.onRequest(dConnectRequest, dConnectResponse);
+            return;
         }
-    } else {
-        // TODO error handling
+        if (req.query === undefined || req.query.serviceId === undefined) {
+            dConnectResponse.error(5);
+            return;
+        }
+        parsedId = parseServiceId(req.query.serviceId);
+        if (parsedId === null) {
+            dConnectResponse.error(6, 'serviceId is invalid.');
+            return;
+        }
+        dConnectRequest.serviceId = parsedId.serviceId;
+        plugin = pluginMgr.plugin(parsedId.pluginId);
+        if (plugin === undefined) {
+            dConnectResponse.error(6, 'plugin is not found.');
+            return;
+        }
+        plugin.entryPoint.onRequest(dConnectRequest, dConnectResponse);
+    } finally {
+        dConnectResponse.put('product', packageJson.name);
+        dConnectResponse.put('version', packageJson.version);
+        res.json(dConnectResponse.toJson());
     }
-    res.json(dConnectResponse.toJson());
 });
 app.all('/\*', function(req, res) {
-    var json = {
-        result: 1
-    };
-    res.json(json);
+    res.status(404).send('404 Not Found');
 });
+
+function findOwnHandler(request) {
+    var i, k, handlers, handler;
+    for (i = 0; i < ownProfiles.length; i++) {
+        handlers = ownProfiles[i].provides;
+        for (k = 0; k < handlers.length; k++) {
+            handler = handlers[k];
+            if (handler.method === request.method
+                && handler.api === request.api
+                && handler.profile === request.profile
+                && handler.interface === request.interface
+                && handler.attribute === request.attribute) {
+                return handler;
+            }
+        }
+    }
+    return null;
+}
 
 function parseServiceId(serviceId) {
     const delimiter = '.';
     var index = serviceId.indexOf(delimiter);
     if (index < 0) {
-        return undefined;
+        return null;
     }
     return {
       serviceId: serviceId.slice(0, index),
