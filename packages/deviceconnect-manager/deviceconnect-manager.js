@@ -43,6 +43,8 @@ app.all(['/:api/:profile', '/:api/:profile/:attribute', '/:api/:profile/:interfa
             return;
         }
         plugin.entryPoint.onRequest(dConnectRequest, dConnectResponse);
+    } catch (e) {
+        dConnectResponse.error(1, e.toString());
     } finally {
         dConnectResponse.put('product', packageJson.name);
         dConnectResponse.put('version', packageJson.version);
