@@ -33,13 +33,13 @@ app.all(['/:api/:profile', '/:api/:profile/:attribute', '/:api/:profile/:interfa
         }
         parsedId = parseServiceId(req.query.serviceId);
         if (parsedId === null) {
-            dConnectResponse.error(6, 'serviceId is invalid.');
+            dConnectResponse.error(6, 'Service ID is invalid.');
             return;
         }
         dConnectRequest.serviceId = parsedId.serviceId;
         plugin = pluginMgr.plugin(parsedId.pluginId);
         if (plugin === undefined) {
-            dConnectResponse.error(6, 'plugin is not found.');
+            dConnectResponse.error(6, 'Device plug-in is not found.');
             return;
         }
         plugin.entryPoint.onRequest(dConnectRequest, dConnectResponse);
