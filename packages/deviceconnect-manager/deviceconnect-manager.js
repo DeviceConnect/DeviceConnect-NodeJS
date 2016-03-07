@@ -1,4 +1,5 @@
 var express = require('express');
+var multiparty = require('multiparty');
 var fs = require('fs');
 var pluginMgr = require('./plugin-manager');
 var config = require('./config');
@@ -12,6 +13,38 @@ config.supports.forEach(function(profile) {
     ownProfiles.push(require(profile.module));
 });
 
+// Support Multipart.
+app.use(function(req, res, next) {
+    if (req.method === 'PUT' || req.method === 'POST') {
+        var form = new multiparty.Form();
+        form.parse(req, function(err, fields, files) {
+            fields = fields || {};
+            Object.keys(fields).forEach(function(name) {
+                var field = fields[name] || [];
+                if (field.length > 0) {
+                    req.query[name] = field[0];
+                }
+            });
+            next();
+        });
+    } else {
+        next();
+    }
+});
+
+// Support CORS.
+app.use(function(req, res, next) {
+    var allowedMethods = req.get('access-control-request-headers');
+    res.header('Access-Control-Allow-Methods', 'POST, GET, PUT, DELETE');
+    res.header('Access-Control-Allow-Headers', 'XMLHttpRequest' + (allowedMethods ? ', ' + allowedMethods : ''));
+    res.header('Access-Control-Allow-Origin', '*');
+    next();
+});
+app.options('*', function(req, res) {
+    res.sendStatus(200);
+});
+
+// Support Device Connect APIs.
 app.all(['/:api/:profile', '/:api/:profile/:attribute', '/:api/:profile/:interface/:attribute'], function(req, res) {
     var dConnectRequest = new Request(req),
         dConnectResponse = new Response(),
