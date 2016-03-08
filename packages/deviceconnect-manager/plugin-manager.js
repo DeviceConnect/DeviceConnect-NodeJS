@@ -16,24 +16,42 @@ function searchPlugins(rootPath, plugins) {
     dirNames.forEach(function(dirName) {
         const pluginJsonName = 'deviceplugin.json';
         const packageJsonName = 'package.json';
-        var info, pluginJson, packageJson;
-        var dirPath = rootPath + '/' + dirName;
-        var pluginJsons = fs.readdirSync(dirPath).filter(function(fileName) {
+        var info, pluginJson, packageJson, entryPoint,
+            dirPath = rootPath + '/' + dirName,
+            pluginJsons = fs.readdirSync(dirPath).filter(function(fileName) {
             return fileName === pluginJsonName;
         });
         if (pluginJsons.length == 1) {
             pluginJson = JSON.parse(fs.readFileSync(dirPath + '/' + pluginJsonName, 'utf8'));
             packageJson = JSON.parse(fs.readFileSync(dirPath + '/' + packageJsonName, 'utf8'));
+            entryPoint = require(dirPath);
+            if (!checkRequestHandler(dirPath, entryPoint)) {
+                return;
+            }
             info = {
               id: generatePluginId(dirPath),
               version: packageJson.version,
               json: pluginJson,
-              entryPoint: require(dirPath)
+              entryPoint: entryPoint
             };
             plugins[info.id] = info;
         }
         searchPlugins(dirPath, plugins);
     });
+}
+
+function checkRequestHandler(dirPath, entryPoint) {
+    if (entryPoint.onRequest === undefined) {
+        console.error('The plug-in entry point does not have "onRequest" function. '
+            + 'This plug-in will be ignored: ' + dirPath + '\n');
+        return false;
+    }
+    if (typeof entryPoint.onRequest !== 'function') {
+        console.error('"onRequest" property of the plug-in entry point is not function. '
+            + 'This plug-in will be ignored: ' + dirPath + '\n');
+        return false;
+    }
+    return true;
 }
 
 function generatePluginId(pluginPath) {
