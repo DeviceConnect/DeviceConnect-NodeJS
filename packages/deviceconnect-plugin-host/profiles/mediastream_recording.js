@@ -5,9 +5,9 @@ var AUDIO_SERVER_PORT = 11000;
 var addon = require('./build/Release/audio_addon');
 var result = addon.setup();
 if (result) {
-    console.log("open");
+    console.log("/dev/dsp open");
 } else {
-    console.log("cannot open");
+    console.error("/dev/dsp cannot open");
 }
 var WebSocketServer = require('ws').Server;
 var wss;
@@ -65,36 +65,41 @@ function onGetMediaRecorder(request, response) {
 
 function onPutPreview(request, response) {
     var target = request.query.target;
-    if (!target) {
-      response.error(10, 'Target is invalid.');
-      return;
-    }
     var recorder = config.recorders[Number(target)];
     if (!recorder) {
-      response.error(10, 'Target id is invalid.');
-      return;
+      recorder = config.recorders[0];
     }
     
-    var command, uri, recorder, aspect;
+    var command, recorder, aspect;
     getCurrentAspect(Number(target), aspect);
-    if (!aspect) {
+    if (!aspect && recorder.type == 'camera') {
         response.error(10, 'Aspect is invalid');
         return;
     }
     if (recorder.module == 'raspicam') {
       command = 'mjpg_streamer -o \"output_http.so -w ./www -p ' + MJPEG_RASPICAM_PORT
         + '\" -i \"input_raspicam.so -r ' + aspect.previewWidth + 'x' + aspect.previewHeight + '\"';
-      uri = 'http://localhost:' + MJPEG_RASPICAM_PORT + '/?action=stream';
+      response.put('uri', 'http://localhost:' + MJPEG_RASPICAM_PORT + '/?action=stream');
     } else if (recorder.type == 'audio') {
       command = undefined;
       wss = new WebSocketServer({ port: AUDIO_SERVER_PORT });
       wss.on('connection', function connection(ws) {
-        console.log("connection open");
-
+        //console.log("connection open");
+        var polling;
         ws.on('message', function incoming(message) {
-            console.log('received: %s', message);
+           // console.log('received: %s', message);
         });
-        setInterval(function() {
+        ws.on('close', function() {
+           if (polling) {
+               clearInterval(polling);
+           }
+        });
+        ws.on('error', function() {
+           if (polling) {
+               clearInterval(polling);
+           }
+        });
+        polling = setInterval(function() {
             var data = new Buffer(70560);
             if (addon.polling(data)) {
                 ws.send(data);
@@ -103,12 +108,13 @@ function onPutPreview(request, response) {
             }
         },10);
       });
-      uri = 'http://localhost:' + AUDIO_SERVER_PORT + "/"
+      var uri = 'http://localhost:' + AUDIO_SERVER_PORT + "/";
+      response.put('audio', {"uri":uri});
     } else {
       command = 'mjpg_streamer -o \"input_uvc.so -d ' + recorder.module
                 + ' -r ' + aspect.previewWidth + 'x' + aspect.previewHeight
                 + '\" -o \"output_http.so -w ./www -p ' + MJPEG_UVCCAM_PORT + '\"';
-      uri = 'http://localhost:' + MJPEG_UVCCAM_PORT + '/?action=stream';
+      response.put('uri', 'http://localhost:' + MJPEG_UVCCAM_PORT + '/?action=stream');
     }
 
     if (command) {
@@ -121,23 +127,26 @@ function onPutPreview(request, response) {
               }
           });
     }
-    response.put('uri', uri);
     response.ok();
 }
 
 function onDeletePreview(request, response) {
     var target = request.query.target;
-    if (!target) {
-	      response.error(10, 'Target is invalid');
-        return;
-    }
-
     var child = children[Number(target)];
+    var record = config.recorders[Number(target)];
     if (!child) {
-      response.error(10, 'Not working server');
-      return;
+      child = children[0];
     }
-    child.kill('SIGHUP');
+    if (!record) {
+      record = config.recorders[0];
+    }
+    if (record.type == 'camera' && child) {
+      child.kill('SIGHUP');
+    } else {
+      if (wss) {
+          wss.close();
+      }
+    }
     response.ok();
 }
 
