@@ -2,6 +2,16 @@ var MJPEG_RASPICAM_PORT = 9000;
 var MJPEG_UVCCAM_PORT = 10000;
 var AUDIO_SERVER_PORT = 11000;
 
+var addon = require('./build/Release/audio_addon');
+var result = addon.setup();
+if (result) {
+    console.log("open");
+} else {
+    console.log("cannot open");
+}
+var WebSocketServer = require('ws').Server;
+var wss;
+
 var fs = require('fs');
 var exec = require('child_process').exec,
     children = [];
@@ -40,34 +50,13 @@ function onGetMediaRecorder(request, response) {
         var recorder = {};
         recorder.id = i;
         recorder.name = config.recorders[i].name;
-	recorder.state = 'inactive';
+	      recorder.state = 'inactive';
         if (config.recorders[i].type == 'camera') {
             recorder.mimeType = 'image/jpeg';
         } else {
             recorder.mimeType = 'audio/wav';
         }
-        var cam;
-	try {
-	    cam = new v4l2camera.Camera(config.recorders[i].module);
-	    recorder.previewWidth = cam.configGet().width;
- 	    recorder.previewHeight = cam.configGet().height;
-	} catch (e) {
-	    if (config.recorders[i].type == 'camera') {
-		var previews = config.recorders[i].previewSizes;
-		if (previews && previews.length > 0) {
-		    recorder.previewWidth = previews[0].width;
-		    recorder.previewHeight = previews[0].height;
-		}		
-	    } else {
-		var audio = config.recorders[i].audio;
-		if (audio && audio.channel && audio.sampleRate && audio.sampleSize && audio.blockSize) {
-		    recorder.audio.channels = audio.channels;
-		    recorder.audio.sampleRate = audio.sampleRate;
-		    recorder.audio.sampleSize = audio.sampleSize;
-		    recorder.audio.blockSize = audio.blockSize;
-		}		
-	    }
-	}
+        getCurrentAspect(i, recorder);
         recorders.push(recorder);
     }
     response.put('recorders', recorders);
@@ -77,35 +66,61 @@ function onGetMediaRecorder(request, response) {
 function onPutPreview(request, response) {
     var target = request.query.target;
     if (!target) {
-	response.error(10, 'Target is invalid.');
-	return;
+      response.error(10, 'Target is invalid.');
+      return;
     }
     var recorder = config.recorders[Number(target)];
     if (!recorder) {
-	response.error(10, 'target id is invalid.');
-	return;
+      response.error(10, 'Target id is invalid.');
+      return;
     }
     
-    var command, uri;
-    if (recorder.module == 'raspicam') {
-	// todo aspect
-	command = 'mjpg_streamer -o \"output_http.so -w ./www -p ' + MJPEG_RASPICAM_PORT 
-		+ '\" -i \"input_raspicam.so\"' ;
-	uri = 'http://localhost:' + MJPEG_RASPICAM_PORT + '/?action=stream';
-    } else if (recorder.type == 'audio') {
-	// todo audio server
-    } else {
-	command = 'mjpg_streamer -o \"input_uvc.so -d ' + recorder.module + '\" -o \"output_http.so -w ./www -p ' + MJPEG_UVCCAM_PORT + '\"';
-	uri = 'http://localhost:' + MJPEG_UVCCAM_PORT + '/?action=stream';
+    var command, uri, recorder, aspect;
+    getCurrentAspect(Number(target), aspect);
+    if (!aspect) {
+        response.error(10, 'Aspect is invalid');
+        return;
     }
-    children[Number(target)] = exec(command,
-	function(error, stdout, stderr) {
-	    console.log('stdout: ' + stdout);
-	    console.log('stderr: ' + stderr);
-	    if (error) {
-		console.log('exec error: ' + error);
-	    }
-    });
+    if (recorder.module == 'raspicam') {
+      command = 'mjpg_streamer -o \"output_http.so -w ./www -p ' + MJPEG_RASPICAM_PORT
+        + '\" -i \"input_raspicam.so -r ' + aspect.previewWidth + 'x' + aspect.previewHeight + '\"';
+      uri = 'http://localhost:' + MJPEG_RASPICAM_PORT + '/?action=stream';
+    } else if (recorder.type == 'audio') {
+      command = undefined;
+      wss = new WebSocketServer({ port: AUDIO_SERVER_PORT });
+      wss.on('connection', function connection(ws) {
+        console.log("connection open");
+
+        ws.on('message', function incoming(message) {
+            console.log('received: %s', message);
+        });
+        setInterval(function() {
+            var data = new Buffer(70560);
+            if (addon.polling(data)) {
+                ws.send(data);
+            } else {
+                console.log("error");
+            }
+        },10);
+      });
+      uri = 'http://localhost:' + AUDIO_SERVER_PORT + "/"
+    } else {
+      command = 'mjpg_streamer -o \"input_uvc.so -d ' + recorder.module
+                + ' -r ' + aspect.previewWidth + 'x' + aspect.previewHeight
+                + '\" -o \"output_http.so -w ./www -p ' + MJPEG_UVCCAM_PORT + '\"';
+      uri = 'http://localhost:' + MJPEG_UVCCAM_PORT + '/?action=stream';
+    }
+
+    if (command) {
+        children[Number(target)] = exec(command,
+          function(error, stdout, stderr) {
+              console.log('stdout: ' + stdout);
+              console.log('stderr: ' + stderr);
+              if (error) {
+                  console.log('exec error: ' + error);
+              }
+          });
+    }
     response.put('uri', uri);
     response.ok();
 }
@@ -113,17 +128,41 @@ function onPutPreview(request, response) {
 function onDeletePreview(request, response) {
     var target = request.query.target;
     if (!target) {
-	response.error(10, 'Target is invalid');
+	      response.error(10, 'Target is invalid');
         return;
     }
 
     var child = children[Number(target)];
     if (!child) {
-	response.error(10, 'Not working server');
-	return;
+      response.error(10, 'Not working server');
+      return;
     }
-
-
     child.kill('SIGHUP');
     response.ok();
+}
+
+
+function getCurrentAspect(i, recorder) {
+    var cam;
+    try {
+        cam = new v4l2camera.Camera(config.recorders[i].module);
+        recorder.previewWidth = cam.configGet().width;
+        recorder.previewHeight = cam.configGet().height;
+    } catch (e) {
+        if (config.recorders[i].type == 'camera') {
+            var previews = config.recorders[i].previewSizes;
+            if (previews && previews.length > 0) {
+                recorder.previewWidth = previews[0].width;
+                recorder.previewHeight = previews[0].height;
+            }
+        } else {
+            var audio = config.recorders[i].audio;
+            if (audio && audio.channel && audio.sampleRate && audio.sampleSize && audio.blockSize) {
+                recorder.audio.channels = audio.channels;
+                recorder.audio.sampleRate = audio.sampleRate;
+                recorder.audio.sampleSize = audio.sampleSize;
+                recorder.audio.blockSize = audio.blockSize;
+            }
+        }
+    }
 }
