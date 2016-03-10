@@ -70,7 +70,7 @@ function onPutPreview(request, response) {
       recorder = config.recorders[0];
     }
     
-    var command, recorder, aspect;
+    var command, recorder, aspect = {};
     getCurrentAspect(Number(target), aspect);
     if (!aspect && recorder.type == 'camera') {
         response.error(10, 'Aspect is invalid');
@@ -126,6 +126,7 @@ function onPutPreview(request, response) {
                   console.log('exec error: ' + error);
               }
           });
+	console.log(children[Number(target)]);
     }
     response.ok();
 }
