@@ -1,12 +1,12 @@
-var fs = require('fs');
-var v4l2camera = require("v4l2camera");
-var config = JSON.parse(fs.readFileSync(__dirname + '/mediarecorder.json', 'utf8'));
+var MJPEG_RASPICAM_PORT = 9000;
+var MJPEG_UVCCAM_PORT = 10000;
+var AUDIO_SERVER_PORT = 11000;
 
-//for (var i = 0; i < config.recorders.length; i++) {
-//    console.log("name:" + config.recorders[i].name);
-//    console.log("module:" + config.recorders[i].module);
-//    console.log("type:" + config.recorders[i].type);
-//}
+var fs = require('fs');
+var exec = require('child_process').exec,
+    children = [];
+var v4l2camera = require('v4l2camera');
+var config = JSON.parse(fs.readFileSync(__dirname + '/mediarecorder.json', 'utf8'));
 
 module.exports = {
 
@@ -40,11 +40,11 @@ function onGetMediaRecorder(request, response) {
         var recorder = {};
         recorder.id = i;
         recorder.name = config.recorders[i].name;
-	recorder.state = "inactive";
-        if (config.recorders[i].type == "camera") {
-            recorder.mimeType =  "image/jpeg";
+	recorder.state = 'inactive';
+        if (config.recorders[i].type == 'camera') {
+            recorder.mimeType = 'image/jpeg';
         } else {
-            recorder.mimeType = "audio/wav";
+            recorder.mimeType = 'audio/wav';
         }
         var cam;
 	try {
@@ -52,7 +52,7 @@ function onGetMediaRecorder(request, response) {
 	    recorder.previewWidth = cam.configGet().width;
  	    recorder.previewHeight = cam.configGet().height;
 	} catch (e) {
-	    if (config.recorders[i].type == "camera") {
+	    if (config.recorders[i].type == 'camera') {
 		var previews = config.recorders[i].previewSizes;
 		if (previews && previews.length > 0) {
 		    recorder.previewWidth = previews[0].width;
@@ -70,14 +70,60 @@ function onGetMediaRecorder(request, response) {
 	}
         recorders.push(recorder);
     }
-    response.put("recorders", recorders);
+    response.put('recorders', recorders);
     response.ok();
 }
 
 function onPutPreview(request, response) {
-    response.error(1, 'To be implemented.');
+    var target = request.query.target;
+    if (!target) {
+	response.error(10, 'Target is invalid.');
+	return;
+    }
+    var recorder = config.recorders[Number(target)];
+    if (!recorder) {
+	response.error(10, 'target id is invalid.');
+	return;
+    }
+    
+    var command, uri;
+    if (recorder.module == 'raspicam') {
+	// todo aspect
+	command = 'mjpg_streamer -o \"output_http.so -w ./www -p ' + MJPEG_RASPICAM_PORT 
+		+ '\" -i \"input_raspicam.so\"' ;
+	uri = 'http://localhost:' + MJPEG_RASPICAM_PORT + '/?action=stream';
+    } else if (recorder.type == 'audio') {
+	// todo audio server
+    } else {
+	command = 'mjpg_streamer -o \"input_uvc.so -d ' + recorder.module + '\" -o \"output_http.so -w ./www -p ' + MJPEG_UVCCAM_PORT + '\"';
+	uri = 'http://localhost:' + MJPEG_UVCCAM_PORT + '/?action=stream';
+    }
+    children[Number(target)] = exec(command,
+	function(error, stdout, stderr) {
+	    console.log('stdout: ' + stdout);
+	    console.log('stderr: ' + stderr);
+	    if (error) {
+		console.log('exec error: ' + error);
+	    }
+    });
+    response.put('uri', uri);
+    response.ok();
 }
 
 function onDeletePreview(request, response) {
-    response.error(1, 'To be implemented.');
+    var target = request.query.target;
+    if (!target) {
+	response.error(10, 'Target is invalid');
+        return;
+    }
+
+    var child = children[Number(target)];
+    if (!child) {
+	response.error(10, 'Not working server');
+	return;
+    }
+
+
+    child.kill('SIGHUP');
+    response.ok();
 }
