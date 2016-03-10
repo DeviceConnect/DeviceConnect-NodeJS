@@ -165,12 +165,13 @@ function getCurrentAspect(i, recorder) {
                 recorder.previewHeight = previews[0].height;
             }
         } else {
-            var audio = config.recorders[i].audio;
-            if (audio && audio.channel && audio.sampleRate && audio.sampleSize && audio.blockSize) {
-                recorder.audio.channels = audio.channels;
-                recorder.audio.sampleRate = audio.sampleRate;
-                recorder.audio.sampleSize = audio.sampleSize;
-                recorder.audio.blockSize = audio.blockSize;
+            var audios = config.recorders[i].audio;
+            if (audios && audios.channels && audios.sampleRate && audios.sampleSize && audios.blockSize) {
+                recorder.audio = {};
+                recorder.audio.channels = audios.channels;
+                recorder.audio.sampleRate = audios.sampleRate;
+                recorder.audio.sampleSize = audios.sampleSize;
+                recorder.audio.blockSize = audios.blockSize;
             }
         }
     }
