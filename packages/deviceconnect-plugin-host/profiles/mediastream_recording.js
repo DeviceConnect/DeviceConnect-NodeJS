@@ -10,11 +10,12 @@ if (result) {
     console.error("/dev/dsp cannot open");
 }
 var WebSocketServer = require('ws').Server;
-var wss;
+var wss, polling;
 
 var fs = require('fs');
 var exec = require('child_process').exec,
-    children = [];
+    children = [], processId;
+var spawn = require('child_process').spawn;
 var v4l2camera = require('v4l2camera');
 var config = JSON.parse(fs.readFileSync(__dirname + '/mediarecorder.json', 'utf8'));
 
@@ -64,13 +65,13 @@ function onGetMediaRecorder(request, response) {
 }
 
 function onPutPreview(request, response) {
+console.log("onPutPreview");
     var target = request.query.target;
     var recorder = config.recorders[Number(target)];
     if (!recorder) {
       recorder = config.recorders[0];
     }
-    
-    var command, recorder, aspect = {};
+    var command, aspect = {};
     getCurrentAspect(Number(target), aspect);
     if (!aspect && recorder.type == 'camera') {
         response.error(10, 'Aspect is invalid');
@@ -78,14 +79,13 @@ function onPutPreview(request, response) {
     }
     if (recorder.module == 'raspicam') {
       command = 'mjpg_streamer -o \"output_http.so -w ./www -p ' + MJPEG_RASPICAM_PORT
-        + '\" -i \"input_raspicam.so -r ' + aspect.previewWidth + 'x' + aspect.previewHeight + '\"';
+        + '\" -i \"input_raspicam.so -r ' + aspect.previewWidth + 'x' + aspect.previewHeight + '\" -b';
       response.put('uri', 'http://localhost:' + MJPEG_RASPICAM_PORT + '/?action=stream');
     } else if (recorder.type == 'audio') {
       command = undefined;
       wss = new WebSocketServer({ port: AUDIO_SERVER_PORT });
       wss.on('connection', function connection(ws) {
         //console.log("connection open");
-        var polling;
         ws.on('message', function incoming(message) {
            // console.log('received: %s', message);
         });
@@ -102,7 +102,9 @@ function onPutPreview(request, response) {
         polling = setInterval(function() {
             var data = new Buffer(70560);
             if (addon.polling(data)) {
-                ws.send(data);
+                if (data) {
+                    ws.send(data);
+                }
             } else {
                 console.log("error");
             }
@@ -125,10 +127,18 @@ function onPutPreview(request, response) {
               if (error) {
                   console.log('exec error: ' + error);
               }
-          });
-	console.log(children[Number(target)]);
+              if (stderr || error) {
+                 //response.error(16);
+              }
+              var id = stderr.replace('enabling daemon modeforked to background (', '');
+              processId = id.replace(')', '');
+              response.ok();             
+              response.send();
+         });
+         return false;
     }
     response.ok();
+    return true;
 }
 
 function onDeletePreview(request, response) {
@@ -142,7 +152,9 @@ function onDeletePreview(request, response) {
       record = config.recorders[0];
     }
     if (record.type == 'camera' && child) {
-      child.kill('SIGHUP');
+      spawn('kill', ['-9', Number(processId)]);
+      spawn('kill', ['-9', Number(child.pid)]);
+      console.log("kill");
     } else {
       if (wss) {
           wss.close();
