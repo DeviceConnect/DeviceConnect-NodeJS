@@ -48,7 +48,7 @@ module.exports = {
             res.error(17, 'API implementation is duplicated.');
             return;
         }
-        apis[0].onRequest(req, res);
+        return apis[0].onRequest(req, res);
     }
 
 };

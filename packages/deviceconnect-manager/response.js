@@ -18,12 +18,14 @@ errors[16] = 'State of device is illegality.';
 errors[17] = 'State of server is illegality.';
 //errors[18] = 'Origin of request is invalid.';
 
-var Response = function() {
+var Response = function(responder) {
     this.json = {
         result: 1,
         errorCode: 0,
         errorMessage: ''
     };
+    this.responder = responder;
+    this.isResponded = false;
 };
 Response.prototype.get = function(key) {
     return this.json[key];
@@ -49,8 +51,12 @@ Response.prototype.error = function(code, message) {
         this.put('errorMessage', message);
     }
 };
-Response.prototype.toJson = function() {
-    return this.json;
+Response.prototype.send = function() {
+    if (this.isResponded) {
+        return;
+    }
+    this.isResponded = true;
+    this.responder.send(this);
 };
 
 module.exports = Response;

@@ -46,9 +46,16 @@ app.options('*', function(req, res) {
 
 // Support Device Connect APIs.
 app.all(['/:api/:profile', '/:api/:profile/:attribute', '/:api/:profile/:interface/:attribute'], function(req, res) {
-    var dConnectRequest = new Request(req),
-        dConnectResponse = new Response(),
-        parsedId, plugin, handler;
+    var parsedId, plugin, handler, result,
+        dConnectRequest = new Request(req),
+        dConnectResponse = new Response({
+            send: function(obj) {
+                stopTimer();
+                obj.put('product', packageJson.name);
+                obj.put('version', packageJson.version);
+                res.json(obj.json);
+            }
+        });
     
     if (req.params.api !== 'gotapi') {
         res.status(404).send('404 Not Found');
@@ -75,13 +82,31 @@ app.all(['/:api/:profile', '/:api/:profile/:attribute', '/:api/:profile/:interfa
             dConnectResponse.error(6, 'Device plug-in is not found.');
             return;
         }
-        plugin.entryPoint.onRequest(dConnectRequest, dConnectResponse);
+
+        // Wait a response from plug-in.
+        startTimer(dConnectResponse, 60 * 1000);
+        result = plugin.entryPoint.onRequest(dConnectRequest, dConnectResponse);
     } catch (e) {
         dConnectResponse.error(1, e.toString());
     } finally {
-        dConnectResponse.put('product', packageJson.name);
-        dConnectResponse.put('version', packageJson.version);
-        res.json(dConnectResponse.toJson());
+        if (result !== false) {
+            dConnectResponse.send();
+        }
+    }
+
+    function startTimer(responseObj, timeout) {
+        stopTimer();
+        startTimer.timerId = setTimeout(function() {
+            responseObj.error(7); // Response Timeout
+            responseObj.send();
+        }, timeout);
+    }
+
+    function stopTimer() {
+        if (startTimer.timerId !== undefined) {
+            startTimer.timerId = undefined;
+            clearTimeout(startTimer.timerId);
+        }
     }
 });
 app.all('/\*', function(req, res) {
