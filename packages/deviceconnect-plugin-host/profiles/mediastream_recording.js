@@ -65,7 +65,6 @@ function onGetMediaRecorder(request, response) {
 }
 
 function onPutPreview(request, response) {
-console.log("onPutPreview");
     var target = request.query.target;
     var recorder = config.recorders[Number(target)];
     if (!recorder) {
@@ -115,7 +114,7 @@ console.log("onPutPreview");
     } else {
       command = 'mjpg_streamer -i \"input_uvc.so -d ' + recorder.module
                 + ' -r ' + aspect.previewWidth + 'x' + aspect.previewHeight
-                + '\" -o \"output_http.so -w ./www -p ' + MJPEG_UVCCAM_PORT + '\"';
+                + '\" -o \"output_http.so -w ./www -p ' + MJPEG_UVCCAM_PORT + '\" -b';
       response.put('uri', 'http://localhost:' + MJPEG_UVCCAM_PORT + '/?action=stream');
     }
 
@@ -154,7 +153,6 @@ function onDeletePreview(request, response) {
     if (record.type == 'camera' && child) {
       spawn('kill', ['-9', Number(processId)]);
       spawn('kill', ['-9', Number(child.pid)]);
-      console.log("kill");
     } else {
       if (wss) {
           wss.close();
