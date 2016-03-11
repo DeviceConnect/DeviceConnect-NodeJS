@@ -113,7 +113,7 @@ console.log("onPutPreview");
       var uri = 'http://localhost:' + AUDIO_SERVER_PORT + "/";
       response.put('audio', {"uri":uri});
     } else {
-      command = 'mjpg_streamer -o \"input_uvc.so -d ' + recorder.module
+      command = 'mjpg_streamer -i \"input_uvc.so -d ' + recorder.module
                 + ' -r ' + aspect.previewWidth + 'x' + aspect.previewHeight
                 + '\" -o \"output_http.so -w ./www -p ' + MJPEG_UVCCAM_PORT + '\"';
       response.put('uri', 'http://localhost:' + MJPEG_UVCCAM_PORT + '/?action=stream');
