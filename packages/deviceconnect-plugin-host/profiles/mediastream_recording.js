@@ -11,9 +11,11 @@ if (result) {
 }
 var WebSocketServer = require('ws').Server;
 var wss, polling;
+var wsArray = [];
 
 var fs = require('fs');
-var exec = require('child_process').exec,
+var exec = require('child_process').exec;
+var spawn = require('child_process').spawn,
     children = [];
 var v4l2camera = require('v4l2camera');
 var config = JSON.parse(fs.readFileSync(__dirname + '/mediarecorder.json', 'utf8'));
@@ -77,42 +79,58 @@ function onPutPreview(request, response) {
     }
     if (recorder.module == 'raspicam') {
       command = 'mjpg_streamer -o \"output_http.so -w ./www -p ' + MJPEG_RASPICAM_PORT
-        + '\" -i \"input_raspicam.so -r ' + aspect.previewWidth + 'x' + aspect.previewHeight + '\"';
+        + '\" -i \"input_raspicam.so -r ' + aspect.previewWidth + 'x' + aspect.previewHeight + '\" -b';
       response.put('uri', 'http://localhost:' + MJPEG_RASPICAM_PORT + '/?action=stream');
     } else if (recorder.type == 'audio') {
       command = undefined;
-      wss = new WebSocketServer({ port: AUDIO_SERVER_PORT });
-      wss.on('connection', function connection(ws) {
-        ws.on('message', function incoming(message) {
-           // console.log('received: %s', message);
-        });
-        ws.on('close', function() {
-           if (polling) {
-               clearInterval(polling);
-           }
-        });
-        ws.on('error', function() {
-           if (polling) {
-               clearInterval(polling);
-           }
-        });
-        polling = setInterval(function() {
-            var data = new Buffer(70560);
-            if (addon.polling(data)) {
-                if (data) {
-                    ws.send(data);
-                }
-            } else {
-                console.log("error");
-            }
-        },10);
-      });
+
+      if (!wss && !polling) {
+          polling = setInterval(function() {
+              var data = new Buffer(70560);
+              if (addon.polling(data)) {
+                  if (data) {
+                      wsArray.forEach(function(ws) {
+                          if (ws.readyState === 1) {
+                              ws.send(data);
+                          }
+                      });
+                  }
+              } else {
+                  console.log("error");
+              }
+          }, 10);
+
+          wss = new WebSocketServer({ port: AUDIO_SERVER_PORT });
+          wss.on('connection', function connection(ws) {
+              ws.on('message', function incoming(message) {
+                  // console.log('received: %s', message);
+              });
+              ws.on('close', function() {
+                  for (var i = 0; i < wsArray.length; i++) {
+                      if (ws === wsArray[i]) {
+                          wsArray.splice(i, 1);
+                          return;
+                      }
+                  }
+              });
+              ws.on('error', function() {
+                  for (var i = 0; i < wsArray.length; i++) {
+                      if (ws === wsArray[i]) {
+                          wsArray.splice(i, 1);
+                          return;
+                      }
+                  }
+              });
+              wsArray.push(ws);
+          });
+      }
+
       var uri = 'http://localhost:' + AUDIO_SERVER_PORT + "/";
       response.put('audio', {"uri":uri});
     } else {
       command = 'mjpg_streamer -i \"input_uvc.so -d ' + recorder.module
                 + ' -r ' + aspect.previewWidth + 'x' + aspect.previewHeight
-                + '\" -o \"output_http.so -w ./www -p ' + MJPEG_UVCCAM_PORT + '\"';
+                + '\" -o \"output_http.so -w ./www -p ' + MJPEG_UVCCAM_PORT + '\" -b';
       response.put('uri', 'http://localhost:' + MJPEG_UVCCAM_PORT + '/?action=stream');
     }
 
@@ -126,8 +144,9 @@ function onPutPreview(request, response) {
               }
               response.ok();
               response.send();
-         });
-        return false;
+            
+       });
+       return false;
     }
     response.ok();
     return true;
@@ -144,13 +163,23 @@ function onDeletePreview(request, response) {
       record = config.recorders[0];
     }
     if (record.type == 'camera' && child) {
-      exec('pkill -x mjpg_streamer', function(){});
+      spawn('pkill', ['-x', 'mjpg_streamer']);
     } else {
       if (wss) {
           wss.close();
+          wss = undefined;
       }
+      if (polling) {
+          clearInterval(polling);
+          polling = undefined;
+      }
+      wsArray = [];
     }
     response.ok();
+    setTimeout(function() {
+       response.send();
+    }, 5000);
+    return false;
 }
 
 
