@@ -128,20 +128,35 @@ function onPutPreview(request, response) {
       var uri = 'http://localhost:' + AUDIO_SERVER_PORT + "/";
       response.put('audio', {"uri":uri});
     } else {
+      var port = MJPEG_UVCCAM_PORT;
+      for (var i = 1; i < 1000;i++) {
+          if (!children[Number(i)]) {
+              port = MJPEG_UVCCAM_PORT + (i - 1);
+              break;
+          }
+          if (i >= 99) {
+             response.error(16);
+             return;
+          }
+      }
+
       command = 'mjpg_streamer -i \"input_uvc.so -d ' + recorder.module
                 + ' -r ' + aspect.previewWidth + 'x' + aspect.previewHeight
-                + '\" -o \"output_http.so -w ./www -p ' + MJPEG_UVCCAM_PORT + '\" -b';
-      response.put('uri', 'http://localhost:' + MJPEG_UVCCAM_PORT + '/?action=stream#' + new Date().getTime());
+                + '\" -o \"output_http.so -w ./www -p ' + port + '\" -b';
+      response.put('uri', 'http://localhost:' + port + '/?action=stream#' + new Date().getTime());
     }
-
     if (command) {
         children[Number(target)] = exec(command,
-          function(error, stdout, stderr) {
+           function(error, stdout, stderr) {
               if (error) {
                   console.log('exec error: ' + error);
+                  response.error(16);
+              } else {
+                  response.ok();
               }
-              response.ok();
-              response.send();
+              setTimeout(function() {
+                  response.send();
+              }, 5000);
             
        });
        return false;
@@ -162,6 +177,7 @@ function onDeletePreview(request, response) {
     }
     if (record.type == 'camera' && child) {
       spawn('pkill', ['-x', 'mjpg_streamer']);
+      spawn('kill', ['-9', '\'pidof mjpg_streamer\'']);
     } else {
       if (wss) {
           wss.close();
@@ -175,8 +191,8 @@ function onDeletePreview(request, response) {
     }
     response.ok();
     setTimeout(function() {
-       response.send();
-    }, 5000);
+        response.send();
+    }, 10000);
     return false;
 }
 
