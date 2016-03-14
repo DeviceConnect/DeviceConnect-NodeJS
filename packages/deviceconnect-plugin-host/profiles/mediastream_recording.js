@@ -13,7 +13,8 @@ var WebSocketServer = require('ws').Server;
 var wss, polling;
 
 var fs = require('fs');
-var exec = require('child_process').exec,
+var exec = require('child_process').exec;
+var spawn = require('child_process').spawn,
     children = [];
 var v4l2camera = require('v4l2camera');
 var config = JSON.parse(fs.readFileSync(__dirname + '/mediarecorder.json', 'utf8'));
@@ -77,7 +78,7 @@ function onPutPreview(request, response) {
     }
     if (recorder.module == 'raspicam') {
       command = 'mjpg_streamer -o \"output_http.so -w ./www -p ' + MJPEG_RASPICAM_PORT
-        + '\" -i \"input_raspicam.so -r ' + aspect.previewWidth + 'x' + aspect.previewHeight + '\"';
+        + '\" -i \"input_raspicam.so -r ' + aspect.previewWidth + 'x' + aspect.previewHeight + '\" -b';
       response.put('uri', 'http://localhost:' + MJPEG_RASPICAM_PORT + '/?action=stream');
     } else if (recorder.type == 'audio') {
       command = undefined;
@@ -112,7 +113,7 @@ function onPutPreview(request, response) {
     } else {
       command = 'mjpg_streamer -i \"input_uvc.so -d ' + recorder.module
                 + ' -r ' + aspect.previewWidth + 'x' + aspect.previewHeight
-                + '\" -o \"output_http.so -w ./www -p ' + MJPEG_UVCCAM_PORT + '\"';
+                + '\" -o \"output_http.so -w ./www -p ' + MJPEG_UVCCAM_PORT + '\" -b';
       response.put('uri', 'http://localhost:' + MJPEG_UVCCAM_PORT + '/?action=stream');
     }
 
@@ -126,8 +127,9 @@ function onPutPreview(request, response) {
               }
               response.ok();
               response.send();
-         });
-        return false;
+            
+       });
+       return false;
     }
     response.ok();
     return true;
@@ -144,13 +146,17 @@ function onDeletePreview(request, response) {
       record = config.recorders[0];
     }
     if (record.type == 'camera' && child) {
-      exec('pkill -x mjpg_streamer', function(){});
+      spawn('pkill', ['-x', 'mjpg_streamer']);
     } else {
       if (wss) {
           wss.close();
       }
     }
     response.ok();
+    setTimeout(function() {
+       response.send();
+    }, 5000);
+    return false;
 }
 
 
