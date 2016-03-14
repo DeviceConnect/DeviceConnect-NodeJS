@@ -148,6 +148,11 @@ function onPutPreview(request, response) {
     if (command) {
         children[Number(target)] = exec(command,
            function(error, stdout, stderr) {
+              
+              if (stderr) {
+                 var p = stderr.replace('enabling daemon modeforked to background (', '');
+                 children[Number(target)].pid = p.replace(')','');
+              }
               if (error) {
                   console.log('exec error: ' + error);
                   response.error(16);
@@ -176,8 +181,10 @@ function onDeletePreview(request, response) {
       record = config.recorders[0];
     }
     if (record.type == 'camera' && child) {
-      spawn('pkill', ['-x', 'mjpg_streamer']);
-      spawn('kill', ['-9', '\'pidof mjpg_streamer\'']);
+       var pid = child.pid;
+       if (pid) {
+           spawn('kill', ['-9', Number(pid)]);
+       }
     } else {
       if (wss) {
           wss.close();
