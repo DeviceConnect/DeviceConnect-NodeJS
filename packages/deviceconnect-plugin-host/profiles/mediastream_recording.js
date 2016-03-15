@@ -70,6 +70,7 @@ function onPutPreview(request, response) {
     var recorder = config.recorders[Number(target)];
     if (!recorder) {
       recorder = config.recorders[0];
+      target = 0;
     }
     var command, aspect = {};
     getCurrentAspect(Number(target), aspect);
@@ -199,7 +200,7 @@ function onDeletePreview(request, response) {
     response.ok();
     setTimeout(function() {
         response.send();
-    }, 10000);
+    }, 5000);
     return false;
 }
 
