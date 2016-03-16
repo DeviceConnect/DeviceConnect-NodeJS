@@ -1,0 +1,25 @@
+{
+    "recorders": [{
+        "name": "raspicam",
+        "module": "raspicam",
+        "type":"camera",
+        "previewSizes":[{
+	    "width":640,
+            "height":480
+	}]
+    }, {
+        "name": "UVC Camera",
+        "module": "/dev/video0",
+        "type":"camera"
+    }, {
+        "name": "microphone",
+        "module": "/dev/dsp",
+        "type":"audio",
+        "audio": {
+                "channels":1,
+                "sampleRate":44100,
+                "sampleSize":16,
+                "blockSize":4096
+        }
+    }]
+}
