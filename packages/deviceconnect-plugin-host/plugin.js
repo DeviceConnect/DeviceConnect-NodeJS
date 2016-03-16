@@ -49,6 +49,16 @@ module.exports = {
             return;
         }
         return apis[0].onRequest(req, res);
+    },
+
+    onDestroy: function() {
+        var callback;
+        for (var profileName in profiles) {
+            callback = profiles[profileName].onDestroy;
+            if (callback !== undefined) {
+                callback();
+            }
+        }
     }
 
 };

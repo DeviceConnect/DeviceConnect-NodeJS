@@ -113,6 +113,16 @@ app.all('/\*', function(req, res) {
     res.status(404).send('404 Not Found');
 });
 
+process.on('SIGINT', function() {
+    pluginMgr.plugins().forEach(function(plugin) {
+        var callback = plugin.entryPoint.onDestroy;
+        if (callback !== undefined && typeof callback === 'function') {
+            callback();
+        }
+    });
+    process.exit();
+});
+
 function findOwnHandler(request) {
     var i, k, handlers, handler;
     for (i = 0; i < ownProfiles.length; i++) {

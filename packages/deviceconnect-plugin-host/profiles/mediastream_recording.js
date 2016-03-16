@@ -43,7 +43,18 @@ module.exports = {
             attribute: 'preview',
             onRequest: onDeletePreview
         }
-    ]
+    ],
+
+    onDestroy: function() {
+        var child;
+        for (var target in children) {
+            child = children[target];
+            if (child !== undefined) {
+                spawn('kill', ['-9', Number(child.pid)]);
+                console.log('Stopped MJPEG server: target = ' + target + ', pid = ' + child.pid);
+            }
+        }
+    }
 };
 
 function onGetMediaRecorder(request, response) {
