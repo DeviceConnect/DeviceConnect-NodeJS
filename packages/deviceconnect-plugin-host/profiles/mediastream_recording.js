@@ -92,7 +92,7 @@ function onPutPreview(request, response) {
     if (recorder.module == 'raspicam') {
       command = 'mjpg_streamer -o \"output_http.so -w ./www -p ' + MJPEG_RASPICAM_PORT
         + '\" -i \"input_raspicam.so -r ' + aspect.previewWidth + 'x' + aspect.previewHeight + '\" -b';
-      response.put('uri', 'http://localhost:' + MJPEG_RASPICAM_PORT + '/?action=stream#' + new Date().getTime());
+      response.put('uri', 'http://localhost:' + MJPEG_RASPICAM_PORT + '/?action=stream&timestamp=' + new Date().getTime());
     } else if (recorder.type == 'audio') {
       command = undefined;
 
@@ -155,7 +155,7 @@ function onPutPreview(request, response) {
       command = 'mjpg_streamer -i \"input_uvc.so -d ' + recorder.module
                 + ' -r ' + aspect.previewWidth + 'x' + aspect.previewHeight
                 + '\" -o \"output_http.so -w ./www -p ' + port + '\" -b';
-      response.put('uri', 'http://localhost:' + port + '/?action=stream#' + new Date().getTime());
+      response.put('uri', 'http://localhost:' + port + '/?action=stream&timestamp=' + new Date().getTime());
     }
     if (command) {
         children[Number(target)] = exec(command,
