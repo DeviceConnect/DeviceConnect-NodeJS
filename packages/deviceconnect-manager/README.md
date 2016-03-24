@@ -11,7 +11,7 @@ $ npm install
 ## Run
 
 ```
-$ cd DeviceConnect-NodeJS
+$ cd DeviceConnect-NodeJS/package/deviceconnect-manager
 $ npm start
 ```
 
