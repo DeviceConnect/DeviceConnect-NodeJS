@@ -3,7 +3,7 @@
 ## Install
 
 ```
-$ git clone https://github.com/TakayukiHoshi1984/DeviceConnect-NodeJS
+$ git clone https://github.com/DeviceConnect/DeviceConnect-NodeJS
 $ cd DeviceConnect-NodeJS/deviceconnect-plugin-host
 $ npm install
 ```
