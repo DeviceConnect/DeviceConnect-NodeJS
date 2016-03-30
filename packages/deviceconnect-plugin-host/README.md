@@ -2,9 +2,10 @@
 
 ## Install
 
+Let below '<DeviceConnect-NodeJS>' be the path on which this repository has been cloned.
+
 ```
-$ git clone https://github.com/DeviceConnect/DeviceConnect-NodeJS
-$ cd DeviceConnect-NodeJS/deviceconnect-plugin-host
+$ cd <DeviceConnect-NodeJS>/packages/deviceconnect-plugin-host
 $ npm install
 ```
 ## audio_addon.cc build
