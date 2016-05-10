@@ -1,0 +1,27 @@
+{
+
+    "lang": "en",
+
+    "http": {
+        "port": 4035
+    },
+
+    "https": {
+        "enabled": false,
+        "port": 4036,
+        "certificate": "/path/to/certificate",
+        "privateKey": "/path/to/private_key"
+    },
+
+    "supports": [{
+        "name": "availability",
+        "module": "./profiles/availability"
+    }, {
+        "name": "servicediscovery",
+        "module": "./profiles/servicediscovery"
+    }, {
+        "name": "system",
+        "module": "./profiles/system"
+    }]
+
+}
