@@ -3,15 +3,16 @@
 ## Install
 
 ```
-$ git clone https://github.com/TakayukiHoshi1984/DeviceConnect-NodeJS
-$ cd DeviceConnect-NodeJS
+$ git clone https://github.com/DeviceConnect/DeviceConnect-NodeJS
+$ cd DeviceConnect-NodeJS/packages/deviceconnect-manager/
 $ npm install
 ```
 
 ## Run
 
+Execute below command to start DeviceConnect system on the directory 'deviceconnect-manager'.
+
 ```
-$ cd DeviceConnect-NodeJS
 $ npm start
 ```
 
