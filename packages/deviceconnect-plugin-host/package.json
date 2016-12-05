@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "dependencies":{
+     "v4l2camera”:”1.0.4”,
      "ws":"1.0.1"
   },
   "main": "index.js",
