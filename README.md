@@ -1,22 +1,6 @@
-# DeviceConnect-NodeJS
+Click [here](readme.en.md) for description of English.
 
-This is an experimental implementation of Device Connect system for Node.js.
+# DeviceConnect-NodeJS について
+DeviceConnect-NodeJSは、[node-gotapi](https://github.com/futomi/node-gotapi)で利用できるデバイスプラグイン置き場になります。
 
-## Supported Environments
-
-<table>
-<tr><th>Hardware</th><td>Raspberry Pi2 Model B Board</td></tr>
-<tr><th>OS</th><td>Raspbian GNU/Linux 8.0 (jessie)</td></tr>
-<tr><th>Node.js</th><td>v5.1.0</td></tr>
-</table>
-
-## Install
-
-Please refer README.md for each package:
-	
-+ [Device Connect Manager](https://github.com/TakayukiHoshi1984/DeviceConnect-NodeJS/blob/feature_manager_and_host/packages/deviceconnect-manager/README.md)
-+ [Host Device Plug-in](https://github.com/TakayukiHoshi1984/DeviceConnect-NodeJS/blob/feature_manager_and_host/packages/deviceconnect-plugin-host/README.md)
-
-## Demo
-
-Please use [dConnectJavascriptApp](https://github.com/TakayukiHoshi1984/DeviceConnect-JS/tree/master/dConnectJavascriptApp) to try Device Connect system for Node.js.
+node-gotapiは、Open Mobile Alliance（OMA）によって標準化されたGeneric Open Terminal API Framework（GotAPI）1.1をNode.jsで実装したものです。
